@@ -155,25 +155,35 @@ class Regions:
         for c in self.clusters:
             edges =[]
             for reg in c:
-                s, e, row = reg
-                edges += [[s, row], [e, -row]]
+                start, end, row = reg
+                edges += [[start, row], [end, -row]]
             edges = sorted(edges, key=lambda v: v[0])
             for i in range(len(edges)-1):
-                e1 = edges[i]
-                e2 = edges[i+1]
-                s = e1[0]
-                e = e2[0] if e2 == edges[-1] else e2[0]-1
-                count = abs(e1[1])
-                if e1[1] < -1:
-                    count -= 1
-                seg = [s, e, count]
+                e1, e2 = edges[i], edges[i+1]
+                if e1 == e2:
+                    continue
+                start, end = e1[0], e2[0]
+                row1, row2 = e1[1], e2[1]
+                regbeg1, regbeg2 = row1>0, row2>0
+                count = row1
+                if not regbeg1:
+                    count = segments[-1][2] - 1
+                singular = start == end
+                if not singular:
+                    if regbeg2:
+                        end -= 1
+                    if not regbeg1 and start+1 <= end:
+                        start += 1
+                seg = [start, end, count]
                 segments.append(seg)
+
+        assert all(s<=e for s,e,_ in segments), "Invalid segment found"
 
         if save_to_file:
             LOG.debug('Saving to file {} ...'.format(self.outfile))
         with open(self.outfile, 'w') as f:
-            for s, e, count in segments:
-                f.write('{} {} {}\n'.format(s, e, count))
+            for start, end, count in segments:
+                f.write('{} {} {}\n'.format(start, end, count))
         return True
 
     def draw_stacks(self):
